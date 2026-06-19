@@ -274,8 +274,8 @@ export function parseAndValidate(commandString) {
     throw new Error('Missing required env variable: KONG_CLUSTER_CERT_KEY');
   }
   const certKeyNormalized = certKey.replace(/\\n/g, '\n');
-  const keyBeginMatch = certKeyNormalized.match(/-----BEGIN [^-]+PRIVATE KEY-----/);
-  const keyEndMatch = certKeyNormalized.match(/-----END [^-]+PRIVATE KEY-----/);
+  const keyBeginMatch = certKeyNormalized.match(/-----BEGIN [^-]*PRIVATE KEY-----/);
+  const keyEndMatch = certKeyNormalized.match(/-----END [^-]*PRIVATE KEY-----/);
   if (!keyBeginMatch || !keyEndMatch) {
     throw new Error('KONG_CLUSTER_CERT_KEY does not contain a valid private key header');
   }
