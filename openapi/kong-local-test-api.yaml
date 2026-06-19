@@ -22,9 +22,11 @@ paths:
         pm.test("Status code is 200", function () {
             pm.response.to.have.status(200);
         });
-        var jsonData = pm.response.json();
-        if (jsonData.accessToken) {
-            pm.environment.set("accessToken", jsonData.accessToken);
+        if (pm.response && pm.response.code === 200) {
+            var jsonData = pm.response.json();
+            if (jsonData.accessToken) {
+                pm.environment.set("accessToken", jsonData.accessToken);
+            }
         }
       tags:
         - Auth
@@ -66,7 +68,12 @@ paths:
         pm.test("Status code is 204", function () {
             pm.response.to.have.status(204);
         });
-        pm.environment.unset("accessToken");
+        if (pm.response && pm.response.code === 204) {
+            pm.test("Response body is empty", function () {
+                pm.expect(pm.response.text()).to.equal("");
+            });
+            pm.environment.unset("accessToken");
+        }
       tags:
         - Auth
       summary: Logout the current user
@@ -84,11 +91,13 @@ paths:
         pm.test("Status code is 200", function () {
             pm.response.to.have.status(200);
         });
-        var jsonData = pm.response.json();
-        pm.test("User details match", function () {
-            pm.expect(jsonData.id).to.eql("usr_1001");
-            pm.expect(jsonData.email).to.eql("steve@example.test");
-        });
+        if (pm.response && pm.response.code === 200) {
+            var jsonData = pm.response.json();
+            pm.test("User details match", function () {
+                pm.expect(jsonData.id).to.eql("usr_1001");
+                pm.expect(jsonData.email).to.eql("steve@example.test");
+            });
+        }
       tags:
         - Profile
       summary: Get current user profile
@@ -116,11 +125,13 @@ paths:
         pm.test("Status code is 200", function () {
             pm.response.to.have.status(200);
         });
-        var jsonData = pm.response.json();
-        pm.test("Posts list contains data", function () {
-            pm.expect(jsonData.data).to.be.an('array');
-            pm.expect(jsonData.data.length).to.be.above(0);
-        });
+        if (pm.response && pm.response.code === 200) {
+            var jsonData = pm.response.json();
+            pm.test("Posts list contains data", function () {
+                pm.expect(jsonData.data).to.be.an('array');
+                pm.expect(jsonData.data.length).to.be.above(0);
+            });
+        }
       tags:
         - Posts
       summary: List posts
@@ -172,11 +183,13 @@ paths:
         pm.test("Status code is 201", function () {
             pm.response.to.have.status(201);
         });
-        var jsonData = pm.response.json();
-        pm.test("Post created successfully", function () {
-            pm.expect(jsonData.id).to.exist;
-            pm.expect(jsonData.title).to.exist;
-        });
+        if (pm.response && pm.response.code === 201) {
+            var jsonData = pm.response.json();
+            pm.test("Post created successfully", function () {
+                pm.expect(jsonData.id).to.exist;
+                pm.expect(jsonData.title).to.exist;
+            });
+        }
       tags:
         - Posts
       summary: Create a post
@@ -234,10 +247,12 @@ paths:
         pm.test("Status code is 200", function () {
             pm.response.to.have.status(200);
         });
-        var jsonData = pm.response.json();
-        pm.test("Correct post returned", function () {
-            pm.expect(jsonData.id).to.eql("post_1001");
-        });
+        if (pm.response && pm.response.code === 200) {
+            var jsonData = pm.response.json();
+            pm.test("Correct post returned", function () {
+                pm.expect(jsonData.id).to.eql("post_1001");
+            });
+        }
       tags:
         - Posts
       summary: Get one post
@@ -305,6 +320,11 @@ paths:
         pm.test("Status code is 204", function () {
             pm.response.to.have.status(204);
         });
+        if (pm.response && pm.response.code === 204) {
+            pm.test("Response body is empty", function () {
+                pm.expect(pm.response.text()).to.equal("");
+            });
+        }
       tags:
         - Posts
       summary: Delete one post
