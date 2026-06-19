@@ -5,6 +5,7 @@ kong-local-lab/.docker-nocreds/
 
 # Local generated TLS material.
 kong-local-lab/certs/
+kong-local-lab/konnect-credentials/
 
 # Local editor/workspace metadata.
 .idea/
