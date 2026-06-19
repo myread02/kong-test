@@ -132,6 +132,20 @@ curl -i http://localhost:8001/schemas/plugins/mtls-auth
 
 For this OSS image, `mtls-auth` will not appear in the enabled plugin list and its schema request will return `404`. If route- or Service-specific mTLS is required with an OSS stack, use a dedicated Kong listener/instance for the protected APIs or terminate and validate mTLS in an external Nginx, HAProxy, or Envoy proxy.
 
+#### Nginx-Level mTLS (OSS) vs. Enterprise mtls-auth Plugin
+
+Why do local tests (`./scripts/test-mtls-local.sh`) pass on the OSS image even though the `mtls-auth` plugin is missing?
+
+* **Nginx-Level mTLS (OSS):** In `docker-compose.yml`, Kong's Nginx template is configured via `KONG_NGINX_PROXY_SSL_*` environment variables. Nginx terminates TLS on port `8443`, requests the client cert, and validates it using `client-ca.crt` at the network/socket layer. Because it is handled by the underlying Nginx engine, it is free, OSS-compatible, and successfully passes the `curl` verification test. However, it applies to the **entire HTTPS listener** globally and does not map certificates to Kong Consumers.
+* **Enterprise `mtls-auth` Plugin:** Enables granular mTLS configuration per Service, Route, or Consumer. It extracts the certificate's Common Name (CN) or Subject Alternative Name (SAN) and maps it to a Kong Consumer for authorization, rate limiting, and other policy rules, but requires an Enterprise license.
+
+| Feature | Nginx-Level mTLS (OSS) | Enterprise `mtls-auth` Plugin |
+| --- | --- | --- |
+| **Availability** | Available in Kong OSS (Community) | Kong Enterprise Only (requires license) |
+| **Granularity** | Global (entire port/listener) | Granular (per Service, Route, or Consumer) |
+| **Authentication** | Validates CA certificate validity | Maps certificate fields (CN/SAN) to Kong Consumers |
+| **Configuration** | Static via environment variables / Nginx template | Dynamic via Admin API |
+
 #### Enterprise-only Admin API example
 
 On a licensed Kong Gateway edition that includes `mtls-auth`, first upload the trusted client CA and note its returned `id`:

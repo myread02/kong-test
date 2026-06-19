@@ -1,6 +1,7 @@
 /**
  * Tokenizes a command string into an array of shell arguments.
  * Handles single quotes, double quotes, and backslash line continuations.
+ * Throws an error on unclosed quotes or unescaped newlines outside of quotes.
  */
 export function tokenize(commandString) {
   const args = [];
@@ -15,6 +16,12 @@ export function tokenize(commandString) {
     if (escaped) {
       if (char === '\n') {
         // Line continuation: ignore backslash and newline (do not append to current)
+      } else if (char === '\r') {
+        // Handle \r\n line continuations
+        const nextChar = commandString[i + 1];
+        if (nextChar === '\n') {
+          i++; // skip both \r and \n
+        }
       } else {
         current += char;
       }
@@ -28,7 +35,7 @@ export function tokenize(commandString) {
       } else if (inDoubleQuotes) {
         // In double quotes, backslash only escapes double quotes, backslashes, or newlines
         const nextChar = commandString[i + 1];
-        if (nextChar === '"' || nextChar === '\\' || nextChar === '\n') {
+        if (nextChar === '"' || nextChar === '\\' || nextChar === '\n' || nextChar === '\r') {
           escaped = true;
         } else {
           current += char;
@@ -49,6 +56,11 @@ export function tokenize(commandString) {
       continue;
     }
 
+    // Reject unescaped newline outside of quotes
+    if ((char === '\n' || char === '\r') && !inDoubleQuotes && !inSingleQuotes) {
+      throw new Error("Command injection vulnerability: unescaped newline encountered outside of quotes.");
+    }
+
     if (/\s/.test(char) && !inDoubleQuotes && !inSingleQuotes) {
       if (current) {
         args.push(current);
@@ -58,6 +70,10 @@ export function tokenize(commandString) {
     }
 
     current += char;
+  }
+
+  if (inDoubleQuotes || inSingleQuotes) {
+    throw new Error("Command contains unclosed quotes.");
   }
 
   if (current) {
@@ -82,9 +98,16 @@ function validateKongHostname(hostAndPort, fieldName) {
 }
 
 /**
- * Validates a PEM block structure.
+ * Helper to escape characters for a regular expression.
  */
-function validatePEM(pem, expectedBegin, expectedEnd, fieldName) {
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Validates a PEM block structure, optionally supporting certificate chains.
+ */
+function validatePEM(pem, expectedBegin, expectedEnd, fieldName, allowChain = false) {
   if (!pem) {
     throw new Error(`Missing required env variable: ${fieldName}`);
   }
@@ -92,30 +115,42 @@ function validatePEM(pem, expectedBegin, expectedEnd, fieldName) {
   // Handle both literal \n and actual newlines
   const normalized = pem.replace(/\\n/g, '\n');
 
-  const beginMatches = normalized.match(/-----BEGIN [^-]+-----/g);
-  const endMatches = normalized.match(/-----END [^-]+-----/g);
+  const beginMatches = [...normalized.matchAll(new RegExp(escapeRegExp(expectedBegin), 'g'))];
+  const endMatches = [...normalized.matchAll(new RegExp(escapeRegExp(expectedEnd), 'g'))];
 
-  if (!beginMatches || beginMatches.length !== 1) {
+  if (beginMatches.length === 0) {
+    throw new Error(`PEM block for ${fieldName} must contain at least one BEGIN header`);
+  }
+  if (endMatches.length === 0) {
+    throw new Error(`PEM block for ${fieldName} must contain at least one END header`);
+  }
+
+  if (!allowChain && beginMatches.length !== 1) {
     throw new Error(`PEM block for ${fieldName} must contain exactly one BEGIN header`);
   }
-  if (!endMatches || endMatches.length !== 1) {
+  if (!allowChain && endMatches.length !== 1) {
     throw new Error(`PEM block for ${fieldName} must contain exactly one END header`);
   }
 
-  const beginHeader = beginMatches[0];
-  const endHeader = endMatches[0];
-
-  if (beginHeader !== expectedBegin) {
-    throw new Error(`PEM block for ${fieldName} has unexpected BEGIN header: ${beginHeader}`);
-  }
-  if (endHeader !== expectedEnd) {
-    throw new Error(`PEM block for ${fieldName} has unexpected END header: ${endHeader}`);
+  if (beginMatches.length !== endMatches.length) {
+    throw new Error(`PEM block for ${fieldName} has mismatching number of BEGIN and END headers`);
   }
 
-  const startIndex = normalized.indexOf(beginHeader);
-  const endIndex = normalized.indexOf(endHeader);
-  if (startIndex >= endIndex) {
-    throw new Error(`PEM block for ${fieldName} BEGIN header must come before END header`);
+  // Verify sequence and ensure no interleaving/overlap
+  for (let i = 0; i < beginMatches.length; i++) {
+    const beginIndex = beginMatches[i].index;
+    const endIndex = endMatches[i].index;
+
+    if (beginIndex >= endIndex) {
+      throw new Error(`PEM block for ${fieldName} BEGIN header must come before END header`);
+    }
+
+    if (i < beginMatches.length - 1) {
+      const nextBeginIndex = beginMatches[i + 1].index;
+      if (endIndex >= nextBeginIndex) {
+        throw new Error(`PEM block for ${fieldName} has interleaved or nested headers`);
+      }
+    }
   }
 }
 
@@ -128,106 +163,33 @@ export function parseAndValidate(commandString) {
   const seenVars = new Set();
   let image = null;
 
-  const optionsWithArgs = new Set([
-    '-p', '--publish',
-    '-e', '--env',
+  const allowedOptions = new Set([
+    '-d',
     '--name',
-    '-v', '--volume',
-    '--network',
-    '--mount',
-    '-u', '--user',
-    '-w', '--workdir',
-    '--entrypoint',
-    '--restart',
-    '--log-driver',
-    '--log-opt',
-    '--cidfile',
-    '--cpuset-cpus',
-    '--cpuset-mems',
-    '-m', '--memory',
-    '--memory-swap',
-    '--memory-reservation',
-    '--kernel-memory',
-    '--blkio-weight',
-    '--cpu-shares',
-    '--cpu-period',
-    '--cpu-quota',
-    '--cpu-rt-period',
-    '--cpu-rt-runtime',
-    '--cpus',
-    '--device',
-    '--device-read-bps',
-    '--device-write-bps',
-    '--device-read-iops',
-    '--device-write-iops',
-    '--ipc',
-    '--mac-address',
-    '--pid',
-    '--security-opt',
-    '--stop-signal',
-    '--stop-timeout',
-    '--storage-opt',
-    '--runtime',
-    '--shm-size',
-    '--sysctl',
-    '--ulimit',
-    '--gpus',
-    '--health-cmd',
-    '--health-interval',
-    '--health-retries',
-    '--health-timeout',
-    '--health-start-period'
+    '-e',
+    '--env',
+    '-v',
+    '--volume',
+    '-p',
+    '--publish',
+    '--network'
+  ]);
+
+  const optionsWithArgs = new Set([
+    '--name',
+    '-e',
+    '--env',
+    '-v',
+    '--volume',
+    '-p',
+    '--publish',
+    '--network'
   ]);
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === '-e' || arg === '--env') {
-      const next = args[i + 1];
-      if (next && next.includes('=')) {
-        const idx = next.indexOf('=');
-        const name = next.slice(0, idx);
-        const val = next.slice(idx + 1);
-        if (seenVars.has(name)) {
-          throw new Error(`Duplicated environment variable: ${name}`);
-        }
-        seenVars.add(name);
-        envVars[name] = val;
-      }
-      i++;
-      continue;
-    }
-
-    if (arg.startsWith('--env=')) {
-      const valPart = arg.slice('--env='.length);
-      const idx = valPart.indexOf('=');
-      if (idx !== -1) {
-        const name = valPart.slice(0, idx);
-        const val = valPart.slice(idx + 1);
-        if (seenVars.has(name)) {
-          throw new Error(`Duplicated environment variable: ${name}`);
-        }
-        seenVars.add(name);
-        envVars[name] = val;
-      }
-      continue;
-    }
-
-    if (arg.startsWith('-e') && arg.length > 2) {
-      const valPart = arg.slice(2);
-      const idx = valPart.indexOf('=');
-      if (idx !== -1) {
-        const name = valPart.slice(0, idx);
-        const val = valPart.slice(idx + 1);
-        if (seenVars.has(name)) {
-          throw new Error(`Duplicated environment variable: ${name}`);
-        }
-        seenVars.add(name);
-        envVars[name] = val;
-      }
-      continue;
-    }
-
+    // Skip "docker" and "run" at the start
     if (i === 0 && (arg === 'docker' || arg === 'run')) {
       continue;
     }
@@ -236,8 +198,38 @@ export function parseAndValidate(commandString) {
     }
 
     if (arg.startsWith('-')) {
-      if (optionsWithArgs.has(arg)) {
-        i++;
+      let optName = arg;
+      let optVal = null;
+      if (arg.includes('=')) {
+        const idx = arg.indexOf('=');
+        optName = arg.slice(0, idx);
+        optVal = arg.slice(idx + 1);
+      }
+
+      if (!allowedOptions.has(optName)) {
+        throw new Error(`Forbidden option encountered: ${optName}`);
+      }
+
+      if (optName === '-e' || optName === '--env') {
+        let envArg = optVal;
+        if (envArg === null) {
+          envArg = args[i + 1];
+          i++;
+        }
+        if (envArg && envArg.includes('=')) {
+          const idx = envArg.indexOf('=');
+          const name = envArg.slice(0, idx);
+          const val = envArg.slice(idx + 1);
+          if (seenVars.has(name)) {
+            throw new Error(`Duplicated environment variable: ${name}`);
+          }
+          seenVars.add(name);
+          envVars[name] = val;
+        }
+      } else {
+        if (optVal === null && optionsWithArgs.has(optName)) {
+          i++;
+        }
       }
       continue;
     }
@@ -253,7 +245,7 @@ export function parseAndValidate(commandString) {
   if (!cpServerName) {
     throw new Error('Missing KONG_CLUSTER_SERVER_NAME');
   }
-  if (cpHost !== cpServerName) {
+  if (cpHost.toLowerCase() !== cpServerName.toLowerCase()) {
     throw new Error('Control-plane endpoint host and server name do not match.');
   }
 
@@ -262,12 +254,12 @@ export function parseAndValidate(commandString) {
   if (!tpServerName) {
     throw new Error('Missing KONG_CLUSTER_TELEMETRY_SERVER_NAME');
   }
-  if (tpHost !== tpServerName) {
+  if (tpHost.toLowerCase() !== tpServerName.toLowerCase()) {
     throw new Error('Telemetry endpoint host and server name do not match.');
   }
 
   // Validate PEM Blocks
-  validatePEM(envVars.KONG_CLUSTER_CERT, '-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----', 'KONG_CLUSTER_CERT');
+  validatePEM(envVars.KONG_CLUSTER_CERT, '-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----', 'KONG_CLUSTER_CERT', true);
   
   const certKey = envVars.KONG_CLUSTER_CERT_KEY;
   if (!certKey) {
@@ -279,7 +271,7 @@ export function parseAndValidate(commandString) {
   if (!keyBeginMatch || !keyEndMatch) {
     throw new Error('KONG_CLUSTER_CERT_KEY does not contain a valid private key header');
   }
-  validatePEM(certKey, keyBeginMatch[0], keyEndMatch[0], 'KONG_CLUSTER_CERT_KEY');
+  validatePEM(certKey, keyBeginMatch[0], keyEndMatch[0], 'KONG_CLUSTER_CERT_KEY', false);
 
   // Validate Image
   if (image !== 'kong/kong-gateway:3.10') {
