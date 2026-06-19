@@ -87,7 +87,58 @@ By default, Kong is configured to verify client SSL certificates on the HTTPS pr
 
 If you request `https://localhost:8443` without presenting a client certificate signed by that CA, Nginx will reject the connection with a `400 Bad Request` (`400 No required SSL certificate was sent`).
 
-### Verify mTLS with Curl
+### 1. How to Generate and Mount Certificates (Container Activation)
+
+To activate mTLS and HTTPS, the certificate files must exist on the host before the Docker containers are started. If you start Docker first, Docker will automatically create an empty `certs/` directory on the host owned by `root`, which will block your certificate generation script and cause Kong gateway startup to fail.
+
+To activate correctly:
+1. **Clean up any bad setup (if you ran `docker compose up` first):**
+   ```bash
+   cd kong-local-lab
+   docker compose down -v
+   # Remove empty certs folder if created by root
+   sudo rm -rf certs
+   ```
+2. **Generate the certificates from the repository root:**
+   ```bash
+   ./scripts/generate-mtls-certs.sh
+   ```
+3. **Start the containers to mount the files and activate the gateway:**
+   ```bash
+   cd kong-local-lab
+   docker compose up -d
+   ```
+
+### 2. Dynamic Certificate Activation via Kong Admin API
+
+If you are using Kong's database-backed mode and want to dynamically register and manage certificates in the database rather than pinning them to container configuration files, use the Kong Admin API:
+
+#### A. Activate Server Certificates (for Custom SNIs)
+To dynamically upload and activate your server SSL certificate/key for SNIs like `localhost`:
+```bash
+curl -i -X POST http://localhost:8001/certificates \
+  -F "cert=@kong-local-lab/certs/localhost.crt" \
+  -F "key=@kong-local-lab/certs/localhost.key" \
+  -F "snis[]=localhost"
+```
+
+#### B. Activate CA Certificates (to Trust Client CAs)
+To dynamically register your client Certificate Authority (CA) in Kong's database:
+```bash
+curl -i -X POST http://localhost:8001/ca_certificates \
+  -F "cert=@kong-local-lab/certs/client-ca.crt"
+```
+*Note the returned JSON `id` of the CA certificate. You will need it to configure routes or plugins.*
+
+#### C. Activate the mTLS Authentication (`mtls-auth`) Plugin on a Route
+To enforce client-certificate-based authentication dynamically on a specific route (e.g., `test-route`) using the registered CA certificate:
+```bash
+curl -i -X POST http://localhost:8001/routes/test-route/plugins \
+  --data "name=mtls-auth" \
+  --data "config.ca_certificates[]=<ca-certificate-uuid>"
+```
+
+### 3. Verify mTLS with Curl
 To verify that mTLS works locally, run:
 
 ```bash
