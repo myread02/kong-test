@@ -9,7 +9,7 @@
           "description": "",
           "item": [
             {
-              "id": "024dcd67-7e22-4946-b352-0075dc638a70",
+              "id": "ba315d52-dab0-4aff-ac71-00272d5d2693",
               "name": "Login with email and password",
               "request": {
                 "name": "Login with email and password",
@@ -38,7 +38,7 @@
                 "method": "POST",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"<email>\",\n  \"password\": \"<string>\"\n}",
+                  "raw": "{\n  \"email\": \"steve@example.test\",\n  \"password\": \"local-password-123\"\n}",
                   "options": {
                     "raw": {
                       "headerFamily": "json",
@@ -50,7 +50,7 @@
               },
               "response": [
                 {
-                  "id": "f529bb45-021e-4caf-8752-1c2146320fbb",
+                  "id": "0555e43d-87db-4724-b802-7f7238d568df",
                   "name": "Login accepted.",
                   "originalRequest": {
                     "url": {
@@ -77,7 +77,7 @@
                     "method": "POST",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"<email>\",\n  \"password\": \"<string>\"\n}",
+                      "raw": "{\n  \"email\": \"steve@example.test\",\n  \"password\": \"local-password-123\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -94,12 +94,12 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"accessToken\": \"<string>\",\n  \"tokenType\": \"<string>\",\n  \"expiresIn\": \"<integer>\",\n  \"user\": {\n    \"id\": \"<string>\",\n    \"name\": \"<string>\",\n    \"email\": \"<email>\"\n  }\n}",
+                  "body": "{\n  \"accessToken\": \"local-test-token\",\n  \"tokenType\": \"Bearer\",\n  \"expiresIn\": 3600,\n  \"user\": {\n    \"id\": \"usr_1001\",\n    \"name\": \"Steve Wang\",\n    \"email\": \"steve@example.test\"\n  }\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 },
                 {
-                  "id": "ac0f530d-05cb-4835-a50a-a753bfc61b76",
+                  "id": "b5f9371f-8a63-4af2-8a77-8a5feedd9595",
                   "name": "Missing or invalid access token.",
                   "originalRequest": {
                     "url": {
@@ -126,7 +126,7 @@
                     "method": "POST",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"<email>\",\n  \"password\": \"<string>\"\n}",
+                      "raw": "{\n  \"email\": \"steve@example.test\",\n  \"password\": \"local-password-123\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -143,7 +143,7 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+                  "body": "{\n  \"code\": \"unauthorized\",\n  \"message\": \"Login is required.\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 }
@@ -178,7 +178,7 @@
           "description": "",
           "item": [
             {
-              "id": "2d93f637-03a4-4c6f-94ab-fdb42bd4e525",
+              "id": "e2644b3c-da33-4dcd-b2fc-b8b2b73f18ed",
               "name": "Logout the current user",
               "request": {
                 "name": "Logout the current user",
@@ -214,7 +214,7 @@
               },
               "response": [
                 {
-                  "id": "7f252bb2-fd67-40c6-b5f6-8475e48fccd2",
+                  "id": "3fbd3106-6fcf-457e-9a34-0029c722d85f",
                   "name": "Logout accepted.",
                   "originalRequest": {
                     "url": {
@@ -248,7 +248,7 @@
                   "_postman_previewlanguage": "text"
                 },
                 {
-                  "id": "98aff7db-6160-46df-8b87-b7e5c10fdb6b",
+                  "id": "40564f96-707a-46e0-8781-71683617f9f3",
                   "name": "Missing or invalid access token.",
                   "originalRequest": {
                     "url": {
@@ -287,7 +287,7 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+                  "body": "{\n  \"code\": \"unauthorized\",\n  \"message\": \"Login is required.\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 }
@@ -324,7 +324,7 @@
       "description": "",
       "item": [
         {
-          "id": "fdb2ac82-218d-42be-99c6-3116c1236e60",
+          "id": "3ff06080-720b-4bb3-8f79-ccf8e864cfb4",
           "name": "Get current user profile",
           "request": {
             "name": "Get current user profile",
@@ -359,7 +359,7 @@
           },
           "response": [
             {
-              "id": "9a5a6869-f7ab-4aa6-9d58-f78487948a7c",
+              "id": "ed1c6b3f-06c3-4094-843d-e4a274971f73",
               "name": "Current user profile.",
               "originalRequest": {
                 "url": {
@@ -397,12 +397,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"<string>\",\n  \"name\": \"<string>\",\n  \"email\": \"<email>\"\n}",
+              "body": "{\n  \"id\": \"usr_1001\",\n  \"name\": \"Steve Wang\",\n  \"email\": \"steve@example.test\"\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "da24976b-0f9a-449c-84b0-dc46b65bfbad",
+              "id": "6b3716ea-646d-467d-ba52-602b76a4961b",
               "name": "Missing or invalid access token.",
               "originalRequest": {
                 "url": {
@@ -440,7 +440,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+              "body": "{\n  \"code\": \"unauthorized\",\n  \"message\": \"Login is required.\"\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -476,7 +476,7 @@
       "description": "",
       "item": [
         {
-          "id": "e26a83fb-7ed2-46c0-b93f-c16eca29efc6",
+          "id": "922442ac-8462-423b-834f-017551f9f4bd",
           "name": "List posts",
           "request": {
             "name": "List posts",
@@ -505,7 +505,7 @@
                     "type": "text/plain"
                   },
                   "key": "cursor",
-                  "value": "<string>"
+                  "value": "string"
                 }
               ],
               "variable": []
@@ -530,7 +530,7 @@
           },
           "response": [
             {
-              "id": "16bd430a-f28e-46c2-8d8d-614037759d6f",
+              "id": "b16bad93-23fb-44df-acbf-9aad9ca15477",
               "name": "A page of posts.",
               "originalRequest": {
                 "url": {
@@ -557,7 +557,7 @@
                         "type": "text/plain"
                       },
                       "key": "cursor",
-                      "value": "<string>"
+                      "value": "string"
                     }
                   ],
                   "variable": []
@@ -587,12 +587,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"data\": [\n    {\n      \"id\": \"<string>\",\n      \"title\": \"<string>\",\n      \"body\": \"<string>\",\n      \"status\": \"published\",\n      \"authorId\": \"<string>\",\n      \"createdAt\": \"<dateTime>\"\n    },\n    {\n      \"id\": \"<string>\",\n      \"title\": \"<string>\",\n      \"body\": \"<string>\",\n      \"status\": \"draft\",\n      \"authorId\": \"<string>\",\n      \"createdAt\": \"<dateTime>\"\n    }\n  ],\n  \"nextCursor\": \"<string>\"\n}",
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"post_1001\",\n      \"title\": \"Local Kong test\",\n      \"body\": \"This post was created for Postman and Kong route testing.\",\n      \"status\": \"published\",\n      \"authorId\": \"usr_1001\",\n      \"createdAt\": \"2026-06-19T14:30:00Z\"\n    },\n    {\n      \"id\": \"post_1002\",\n      \"title\": \"mTLS smoke test\",\n      \"body\": \"This request should require a trusted client certificate on HTTPS.\",\n      \"status\": \"draft\",\n      \"authorId\": \"usr_1001\",\n      \"createdAt\": \"2026-06-19T14:35:00Z\"\n    }\n  ],\n  \"nextCursor\": \"post_1002\"\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "43f3c976-e94d-4661-ab41-5dacf388a8b3",
+              "id": "a49745ea-b3f1-4d7b-96d0-0487c34fabd8",
               "name": "Missing or invalid access token.",
               "originalRequest": {
                 "url": {
@@ -619,7 +619,7 @@
                         "type": "text/plain"
                       },
                       "key": "cursor",
-                      "value": "<string>"
+                      "value": "string"
                     }
                   ],
                   "variable": []
@@ -649,7 +649,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+              "body": "{\n  \"code\": \"unauthorized\",\n  \"message\": \"Login is required.\"\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -679,7 +679,7 @@
           }
         },
         {
-          "id": "f3bbbef9-b651-4d69-b4ca-eb9b933b6033",
+          "id": "51f2098b-af07-4abf-9f0c-67d25e609f03",
           "name": "Create a post",
           "request": {
             "name": "Create a post",
@@ -707,7 +707,7 @@
             "method": "POST",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\"\n}",
+              "raw": "{\n  \"title\": \"Random local post\",\n  \"body\": \"This is sample content sent through Kong from Postman.\",\n  \"status\": \"published\"\n}",
               "options": {
                 "raw": {
                   "headerFamily": "json",
@@ -727,7 +727,7 @@
           },
           "response": [
             {
-              "id": "11c79e09-96a9-4005-92e1-57b0eaa94a6a",
+              "id": "56a58fed-8a52-492c-bedc-04f09cf15c5c",
               "name": "Post created.",
               "originalRequest": {
                 "url": {
@@ -761,7 +761,7 @@
                 "method": "POST",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\"\n}",
+                  "raw": "{\n  \"title\": \"Random local post\",\n  \"body\": \"This is sample content sent through Kong from Postman.\",\n  \"status\": \"published\"\n}",
                   "options": {
                     "raw": {
                       "headerFamily": "json",
@@ -778,12 +778,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"id\": \"<string>\",\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\",\n  \"authorId\": \"<string>\",\n  \"createdAt\": \"<dateTime>\"\n}",
+              "body": "{\n  \"id\": \"post_2001\",\n  \"title\": \"Random local post\",\n  \"body\": \"This is sample content sent through Kong from Postman.\",\n  \"status\": \"published\",\n  \"authorId\": \"usr_1001\",\n  \"createdAt\": \"2026-06-19T14:40:00Z\"\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "10d04d86-81c9-4644-aef3-022d6865c451",
+              "id": "64e46bba-fd5b-45f2-97ab-1a63a5f7c4e4",
               "name": "Request validation failed.",
               "originalRequest": {
                 "url": {
@@ -817,7 +817,7 @@
                 "method": "POST",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\"\n}",
+                  "raw": "{\n  \"title\": \"Random local post\",\n  \"body\": \"This is sample content sent through Kong from Postman.\",\n  \"status\": \"published\"\n}",
                   "options": {
                     "raw": {
                       "headerFamily": "json",
@@ -834,12 +834,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+              "body": "{\n  \"code\": \"bad_request\",\n  \"message\": \"Request body is invalid.\"\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "636df871-d71f-4c08-a2bf-d431f983562f",
+              "id": "6f139e27-06c3-4706-8960-22534b91bb58",
               "name": "Missing or invalid access token.",
               "originalRequest": {
                 "url": {
@@ -873,7 +873,7 @@
                 "method": "POST",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\"\n}",
+                  "raw": "{\n  \"title\": \"Random local post\",\n  \"body\": \"This is sample content sent through Kong from Postman.\",\n  \"status\": \"published\"\n}",
                   "options": {
                     "raw": {
                       "headerFamily": "json",
@@ -890,7 +890,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+              "body": "{\n  \"code\": \"unauthorized\",\n  \"message\": \"Login is required.\"\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -924,7 +924,7 @@
           "description": "",
           "item": [
             {
-              "id": "abe5ff73-1c1d-47d4-b10f-2e53922499b5",
+              "id": "3410b45c-918a-455e-a64d-37947feecdcc",
               "name": "Get one post",
               "request": {
                 "name": "Get one post",
@@ -941,7 +941,7 @@
                   "variable": [
                     {
                       "type": "any",
-                      "value": "<string>",
+                      "value": "post_1001",
                       "key": "postId",
                       "disabled": false,
                       "description": {
@@ -971,7 +971,7 @@
               },
               "response": [
                 {
-                  "id": "0005b176-51d6-4ebc-ad24-a22cc0630499",
+                  "id": "4ab18a4c-8fad-4e04-86be-7527322898e1",
                   "name": "Post detail.",
                   "originalRequest": {
                     "url": {
@@ -991,7 +991,7 @@
                             "type": "text/plain"
                           },
                           "type": "any",
-                          "value": "<string>",
+                          "value": "post_1001",
                           "key": "postId"
                         }
                       ]
@@ -1021,12 +1021,12 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"id\": \"<string>\",\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\",\n  \"authorId\": \"<string>\",\n  \"createdAt\": \"<dateTime>\"\n}",
+                  "body": "{\n  \"id\": \"post_1001\",\n  \"title\": \"Local Kong test\",\n  \"body\": \"This post was created for Postman and Kong route testing.\",\n  \"status\": \"published\",\n  \"authorId\": \"usr_1001\",\n  \"createdAt\": \"2026-06-19T14:30:00Z\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 },
                 {
-                  "id": "524429ce-4fc8-45f9-b570-99679c185b39",
+                  "id": "4aab276d-db80-428a-a55b-7e210438653b",
                   "name": "Missing or invalid access token.",
                   "originalRequest": {
                     "url": {
@@ -1046,7 +1046,7 @@
                             "type": "text/plain"
                           },
                           "type": "any",
-                          "value": "<string>",
+                          "value": "post_1001",
                           "key": "postId"
                         }
                       ]
@@ -1076,12 +1076,12 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+                  "body": "{\n  \"code\": \"unauthorized\",\n  \"message\": \"Login is required.\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 },
                 {
-                  "id": "08728d2f-7ee3-4840-900d-ba8c781992ec",
+                  "id": "255be673-a9db-4157-8b8e-71e05b41796e",
                   "name": "Resource not found.",
                   "originalRequest": {
                     "url": {
@@ -1101,7 +1101,7 @@
                             "type": "text/plain"
                           },
                           "type": "any",
-                          "value": "<string>",
+                          "value": "post_1001",
                           "key": "postId"
                         }
                       ]
@@ -1131,7 +1131,7 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+                  "body": "{\n  \"code\": \"not_found\",\n  \"message\": \"The requested resource was not found.\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 }
@@ -1160,7 +1160,7 @@
               }
             },
             {
-              "id": "f6dbefbc-7d85-4bd2-bc1b-e84923327f04",
+              "id": "6643b2fa-110a-4c4a-98c8-b114986c17ec",
               "name": "Replace one post",
               "request": {
                 "name": "Replace one post",
@@ -1177,7 +1177,7 @@
                   "variable": [
                     {
                       "type": "any",
-                      "value": "<string>",
+                      "value": "post_1001",
                       "key": "postId",
                       "disabled": false,
                       "description": {
@@ -1200,7 +1200,7 @@
                 "method": "PUT",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\"\n}",
+                  "raw": "{\n  \"title\": \"Updated local post\",\n  \"body\": \"Replaced body content from Postman.\",\n  \"status\": \"published\"\n}",
                   "options": {
                     "raw": {
                       "headerFamily": "json",
@@ -1220,7 +1220,7 @@
               },
               "response": [
                 {
-                  "id": "91b3c8f2-5beb-4a8c-9de3-bde4b61b274f",
+                  "id": "8a639ed8-b8d2-4621-9c09-6e189c10dcd3",
                   "name": "Post replaced.",
                   "originalRequest": {
                     "url": {
@@ -1240,7 +1240,7 @@
                             "type": "text/plain"
                           },
                           "type": "any",
-                          "value": "<string>",
+                          "value": "post_1001",
                           "key": "postId"
                         }
                       ]
@@ -1266,7 +1266,7 @@
                     "method": "PUT",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\"\n}",
+                      "raw": "{\n  \"title\": \"Updated local post\",\n  \"body\": \"Replaced body content from Postman.\",\n  \"status\": \"published\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -1283,12 +1283,12 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"id\": \"<string>\",\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\",\n  \"authorId\": \"<string>\",\n  \"createdAt\": \"<dateTime>\"\n}",
+                  "body": "{\n  \"id\": \"post_1001\",\n  \"title\": \"Local Kong test\",\n  \"body\": \"This post was created for Postman and Kong route testing.\",\n  \"status\": \"published\",\n  \"authorId\": \"usr_1001\",\n  \"createdAt\": \"2026-06-19T14:30:00Z\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 },
                 {
-                  "id": "16052b35-c9c4-40b6-a269-ac895b0ccc25",
+                  "id": "6b5190f6-8153-4f4c-8db9-e103555812eb",
                   "name": "Request validation failed.",
                   "originalRequest": {
                     "url": {
@@ -1308,7 +1308,7 @@
                             "type": "text/plain"
                           },
                           "type": "any",
-                          "value": "<string>",
+                          "value": "post_1001",
                           "key": "postId"
                         }
                       ]
@@ -1334,7 +1334,7 @@
                     "method": "PUT",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\"\n}",
+                      "raw": "{\n  \"title\": \"Updated local post\",\n  \"body\": \"Replaced body content from Postman.\",\n  \"status\": \"published\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -1351,12 +1351,12 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+                  "body": "{\n  \"code\": \"bad_request\",\n  \"message\": \"Request body is invalid.\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 },
                 {
-                  "id": "19efeaab-3ca7-45a8-9edb-fd4fc0685c5f",
+                  "id": "184576b6-2f4a-48e2-854f-81732836fca2",
                   "name": "Missing or invalid access token.",
                   "originalRequest": {
                     "url": {
@@ -1376,7 +1376,7 @@
                             "type": "text/plain"
                           },
                           "type": "any",
-                          "value": "<string>",
+                          "value": "post_1001",
                           "key": "postId"
                         }
                       ]
@@ -1402,7 +1402,7 @@
                     "method": "PUT",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\"\n}",
+                      "raw": "{\n  \"title\": \"Updated local post\",\n  \"body\": \"Replaced body content from Postman.\",\n  \"status\": \"published\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -1419,12 +1419,12 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+                  "body": "{\n  \"code\": \"unauthorized\",\n  \"message\": \"Login is required.\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 },
                 {
-                  "id": "a81f46bd-8b4b-4c41-9f81-48d97ce15374",
+                  "id": "824ea36b-a9de-4605-b020-5454be7bb2a1",
                   "name": "Resource not found.",
                   "originalRequest": {
                     "url": {
@@ -1444,7 +1444,7 @@
                             "type": "text/plain"
                           },
                           "type": "any",
-                          "value": "<string>",
+                          "value": "post_1001",
                           "key": "postId"
                         }
                       ]
@@ -1470,7 +1470,7 @@
                     "method": "PUT",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"title\": \"<string>\",\n  \"body\": \"<string>\",\n  \"status\": \"published\"\n}",
+                      "raw": "{\n  \"title\": \"Updated local post\",\n  \"body\": \"Replaced body content from Postman.\",\n  \"status\": \"published\"\n}",
                       "options": {
                         "raw": {
                           "headerFamily": "json",
@@ -1487,7 +1487,7 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+                  "body": "{\n  \"code\": \"not_found\",\n  \"message\": \"The requested resource was not found.\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 }
@@ -1510,7 +1510,7 @@
               }
             },
             {
-              "id": "f4dc3a10-5754-442b-87c8-680439940207",
+              "id": "e1c84f49-25fd-4cdf-83ea-9d32b6a88ab1",
               "name": "Delete one post",
               "request": {
                 "name": "Delete one post",
@@ -1527,7 +1527,7 @@
                   "variable": [
                     {
                       "type": "any",
-                      "value": "<string>",
+                      "value": "post_1001",
                       "key": "postId",
                       "disabled": false,
                       "description": {
@@ -1557,7 +1557,7 @@
               },
               "response": [
                 {
-                  "id": "085faff5-a408-4f56-9f23-fff778856a45",
+                  "id": "7a0f6277-5124-48e5-87f7-902bd790faec",
                   "name": "Post deleted.",
                   "originalRequest": {
                     "url": {
@@ -1577,7 +1577,7 @@
                             "type": "text/plain"
                           },
                           "type": "any",
-                          "value": "<string>",
+                          "value": "post_1001",
                           "key": "postId"
                         }
                       ]
@@ -1602,7 +1602,7 @@
                   "_postman_previewlanguage": "text"
                 },
                 {
-                  "id": "32cf9ec3-2235-463c-bd83-cf4abf06a07e",
+                  "id": "2ba5cc38-482a-4978-9c1b-772d24337634",
                   "name": "Missing or invalid access token.",
                   "originalRequest": {
                     "url": {
@@ -1622,7 +1622,7 @@
                             "type": "text/plain"
                           },
                           "type": "any",
-                          "value": "<string>",
+                          "value": "post_1001",
                           "key": "postId"
                         }
                       ]
@@ -1652,12 +1652,12 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+                  "body": "{\n  \"code\": \"unauthorized\",\n  \"message\": \"Login is required.\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 },
                 {
-                  "id": "62e44525-77ec-4443-a1ac-3de8c3ea0741",
+                  "id": "a1b4a01f-303a-4625-b6ef-23439f84e427",
                   "name": "Resource not found.",
                   "originalRequest": {
                     "url": {
@@ -1677,7 +1677,7 @@
                             "type": "text/plain"
                           },
                           "type": "any",
-                          "value": "<string>",
+                          "value": "post_1001",
                           "key": "postId"
                         }
                       ]
@@ -1707,7 +1707,7 @@
                       "value": "application/json"
                     }
                   ],
-                  "body": "{\n  \"code\": \"<string>\",\n  \"message\": \"<string>\"\n}",
+                  "body": "{\n  \"code\": \"not_found\",\n  \"message\": \"The requested resource was not found.\"\n}",
                   "cookie": [],
                   "_postman_previewlanguage": "json"
                 }
@@ -1743,7 +1743,7 @@
       "description": "",
       "item": [
         {
-          "id": "bcee47a6-98ea-4366-ab3a-a52b0cfd2b15",
+          "id": "4c5b48b8-b2a2-4a49-990f-3df0c09cbe9c",
           "name": "Get random test data",
           "request": {
             "name": "Get random test data",
@@ -1763,7 +1763,7 @@
                     "type": "text/plain"
                   },
                   "key": "seed",
-                  "value": "<string>"
+                  "value": "postman-demo"
                 }
               ],
               "variable": []
@@ -1780,7 +1780,7 @@
           },
           "response": [
             {
-              "id": "e63095db-4588-42b6-8280-980b0b79b751",
+              "id": "2535bfdf-ba9d-45fe-be3e-6fee2b5a734c",
               "name": "Random test payload.",
               "originalRequest": {
                 "url": {
@@ -1798,7 +1798,7 @@
                         "type": "text/plain"
                       },
                       "key": "seed",
-                      "value": "<string>"
+                      "value": "postman-demo"
                     }
                   ],
                   "variable": []
@@ -1820,7 +1820,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"requestId\": \"<string>\",\n  \"number\": \"<integer>\",\n  \"enabled\": \"<boolean>\",\n  \"labels\": [\n    \"<string>\",\n    \"<string>\"\n  ]\n}",
+              "body": "{\n  \"requestId\": \"req_local_1001\",\n  \"number\": 42,\n  \"enabled\": true,\n  \"labels\": [\n    \"kong\",\n    \"postman\",\n    \"mtls\"\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -1853,7 +1853,7 @@
     }
   ],
   "info": {
-    "_postman_id": "5807dd1c-6a1e-4edd-9829-20d968069722",
+    "_postman_id": "f719bf41-1409-4423-a526-03e147b3491a",
     "name": "Kong Local Test API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "description": {
