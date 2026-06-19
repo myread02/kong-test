@@ -52,37 +52,49 @@ open http://localhost:8002
 
 ## Configure Test Route
 
-Create a service pointing at httpbin:
+Create a service pointing at the stable httpbun mock backend:
 
 ```bash
 curl -i -X PUT http://localhost:8001/services/mock-backend \
-  --data 'url=https://httpbin.org'
+  --data 'url=https://httpbun.com/anything'
 ```
 
-Create a route for `/api/v1`:
+Create a route for `/api/v1` with `strip_path=true` (this strips `/api/v1` from the path and appends the rest to the backend service path):
 
 ```bash
 curl -i -X PUT http://localhost:8001/services/mock-backend/routes/test-route \
   --data 'paths[]=/api/v1' \
   --data 'protocols[]=http' \
-  --data 'protocols[]=https'
+  --data 'protocols[]=https' \
+  --data 'strip_path=true'
 ```
 
-Verify the HTTP proxy:
+Verify the HTTP proxy (which bypasses mTLS):
 
 ```bash
 curl -i http://localhost:8005/api/v1/anything
 ```
 
-Expected result: `200 OK` from httpbin through Kong. If httpbin is temporarily unavailable, the response may be an upstream `503`, but Kong should still include `Via: 1.1 kong/3.9.1`.
+Expected result: `200 OK` from httpbun through Kong gateway.
 
-Verify the HTTPS proxy with mTLS from the repository root:
+---
+
+## Mutual TLS (mTLS) Setting
+
+By default, Kong is configured to verify client SSL certificates on the HTTPS proxy port `8443`. This is enabled in the `docker-compose.yml` file via:
+- `KONG_NGINX_PROXY_SSL_VERIFY_CLIENT: "on"`
+- `KONG_NGINX_PROXY_SSL_CLIENT_CERTIFICATE: "/etc/kong/certs/client-ca.crt"`
+
+If you request `https://localhost:8443` without presenting a client certificate signed by that CA, Nginx will reject the connection with a `400 Bad Request` (`400 No required SSL certificate was sent`).
+
+### Verify mTLS with Curl
+To verify that mTLS works locally, run:
 
 ```bash
 ./scripts/test-mtls-local.sh
 ```
 
-The HTTPS proxy on `https://localhost:8443` uses a `mkcert` server certificate and requires a client certificate signed by `kong-local-lab/certs/client-ca.crt`. A request without a client certificate should fail. A request with the generated client certificate should reach Kong:
+Or run the manual curl command:
 
 ```bash
 curl --cacert kong-local-lab/certs/localhost.crt \
@@ -91,46 +103,56 @@ curl --cacert kong-local-lab/certs/localhost.crt \
   -i https://localhost:8443/api/v1/anything
 ```
 
-Export the client certificate as a macOS-importable `.p12` file and open it to add it to Keychain Access:
+### Import Certificate into macOS Keychain
+To make macOS and browsers trust the client certificate:
+1. Export the client certificate as a `.p12` file:
+   ```bash
+   openssl pkcs12 -export \
+     -out kong-local-lab/certs/client.p12 \
+     -inkey kong-local-lab/certs/client.key \
+     -in kong-local-lab/certs/client.crt \
+     -certfile kong-local-lab/certs/client-ca.crt \
+     -name "Kong Local Client"
+   ```
+2. Double-click the generated `kong-local-lab/certs/client.p12` file (or run `open kong-local-lab/certs/client.p12`) to import it into your Keychain Access.
 
-```bash
-openssl pkcs12 -export \
-  -out kong-local-lab/certs/client.p12 \
-  -inkey kong-local-lab/certs/client.key \
-  -in kong-local-lab/certs/client.crt \
-  -certfile kong-local-lab/certs/client-ca.crt \
-  -name "Kong Local Client"
+---
 
-open kong-local-lab/certs/client.p12
-```
+## Postman & Newman Settings
 
-## Postman OpenAPI Test API
+### 1. Import OpenAPI Specification
+Import the specification file into Postman:
+- File path: `openapi/kong-local-test-api.yaml` (or `openapi/kong-local-test-api.json`)
 
-Import this file into Postman:
+Postman will generate a Collection with requests matching all routes.
 
-```text
-openapi/kong-local-test-api.yaml
-```
+### 2. Configure Client Certificates in Postman
+Because HTTPS port `8443` requires mTLS, you must add the client certificate in Postman:
+1. Open **Postman Settings** (Gear icon in top right -> Settings).
+2. Go to the **Certificates** tab.
+3. Click **Add Certificate** under *Client Certificates* and configure:
+   - **Host**: `localhost`
+   - **Port**: `8443`
+   - **CRT file**: Select `kong-local-lab/certs/client.crt`
+   - **KEY file**: Select `kong-local-lab/certs/client.key`
+   - **Passphrase**: *Leave blank*
+4. Click **Add**. Now, Postman will automatically attach the client certificates when querying `https://localhost:8443`.
 
-Configure Kong to echo all `/api/v1/*` test requests through httpbin:
+*Alternatively, to bypass mTLS completely, you can select the `http://localhost:8005/api/v1` server variable/environment in Postman.*
 
-```bash
-./scripts/configure-openapi-test-route.sh
-```
+### 3. Automated Test Scripts
+We have embedded `x-postman-test-script` extensions directly into the OpenAPI YAML/JSON specs. When you import them into Postman, it automatically populates the **Tests** tab of the requests with the following scripts:
+- Status code assertions (e.g., checks for `200 OK`, `201 Created`, or `204 No Content`).
+- Automatic environment caching of the authentication `accessToken` from the login response, and cache cleanup upon logout.
 
-The imported collection includes sample login, logout, profile, posts, and random-data requests. The HTTPS server URL requires the local mTLS client certificate. In Postman, add a client certificate for host `localhost` and port `8443`:
+---
 
-| Field | Value |
-| --- | --- |
-| CRT file | `kong-local-lab/certs/client.crt` |
-| KEY file | `kong-local-lab/certs/client.key` |
-| Passphrase | leave empty |
+## Rate-Limiting Settings
 
-For a quick test without mTLS, select the `http://localhost:8005/api/v1` server in Postman.
+Kong allows you to enforce rate limits at the route level to prevent service abuse.
 
-## Rate Limit Plugin
-
-Enable route-scoped rate limiting at 3 requests per minute:
+### 1. Enable Rate-Limiting (e.g., 3 requests per minute)
+To enable route-scoped rate limiting:
 
 ```bash
 curl -i -X POST http://localhost:8001/routes/test-route/plugins \
@@ -139,16 +161,23 @@ curl -i -X POST http://localhost:8001/routes/test-route/plugins \
   --data 'config.policy=local'
 ```
 
-Verify enforcement:
+### 2. Check / List Active Plugins
+To see all active plugins configured on your Kong gateway, run:
 
 ```bash
-for i in 1 2 3 4; do
-  curl -sS -o /dev/null -w "try ${i}: %{http_code}\n" \
-    http://localhost:8005/api/v1/anything
-done
+curl -s http://localhost:8001/plugins
 ```
 
-Expected result: after the quota is consumed, Kong returns `429`.
+Locate the `id` of your rate-limiting plugin in the JSON output.
+
+### 3. Delete / Disable Rate-Limiting
+When running a Postman collection containing multiple requests sequentially, a low rate limit (like 3 req/min) will cause subsequent requests to fail with a `429 API rate limit exceeded` status code.
+
+To disable or remove the rate limit, use the plugin's UUID (`<plugin-id>`) retrieved from the step above:
+
+```bash
+curl -i -X DELETE http://localhost:8001/plugins/<plugin-id>
+```
 
 ## Stop And Reset
 
