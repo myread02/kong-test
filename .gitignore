@@ -3,6 +3,9 @@
 # Local Docker client config used to bypass host credential helper issues.
 kong-local-lab/.docker-nocreds/
 
+# Local generated TLS material.
+kong-local-lab/certs/
+
 # Local editor/workspace metadata.
 .idea/
 .vscode/
