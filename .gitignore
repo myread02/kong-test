@@ -1,0 +1,8 @@
+.DS_Store
+
+# Local Docker client config used to bypass host credential helper issues.
+kong-local-lab/.docker-nocreds/
+
+# Local editor/workspace metadata.
+.idea/
+.vscode/
