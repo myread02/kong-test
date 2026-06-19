@@ -1,0 +1,488 @@
+openapi: 3.0.3
+info:
+  title: Kong Local Test API
+  version: 1.0.0
+  description: Local API contract for testing Kong proxy TLS, mTLS, auth-style requests, and basic data operations in Postman.
+servers:
+  - url: https://localhost:8443/api/v1
+    description: Kong HTTPS proxy with mTLS
+  - url: http://localhost:8005/api/v1
+    description: Kong HTTP proxy without TLS
+tags:
+  - name: Auth
+    description: Login and logout test requests.
+  - name: Profile
+    description: Current user test data.
+  - name: Posts
+    description: Example read/write resource requests.
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login with email and password
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            examples:
+              default:
+                value:
+                  email: steve@example.test
+                  password: local-password-123
+      responses:
+        "200":
+          description: Login accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+              examples:
+                default:
+                  value:
+                    accessToken: local-test-token
+                    tokenType: Bearer
+                    expiresIn: 3600
+                    user:
+                      id: usr_1001
+                      name: Steve Wang
+                      email: steve@example.test
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Logout the current user
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Logout accepted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /profile:
+    get:
+      tags:
+        - Profile
+      summary: Get current user profile
+      operationId: getProfile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+              examples:
+                default:
+                  value:
+                    id: usr_1001
+                    name: Steve Wang
+                    email: steve@example.test
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /posts:
+    get:
+      tags:
+        - Posts
+      summary: List posts
+      operationId: listPosts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of posts to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: cursor
+          in: query
+          description: Pagination cursor from a previous response.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: A page of posts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostListResponse"
+              examples:
+                default:
+                  value:
+                    data:
+                      - id: post_1001
+                        title: Local Kong test
+                        body: This post was created for Postman and Kong route testing.
+                        status: published
+                        authorId: usr_1001
+                        createdAt: "2026-06-19T14:30:00Z"
+                      - id: post_1002
+                        title: mTLS smoke test
+                        body: This request should require a trusted client certificate on HTTPS.
+                        status: draft
+                        authorId: usr_1001
+                        createdAt: "2026-06-19T14:35:00Z"
+                    nextCursor: post_1002
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags:
+        - Posts
+      summary: Create a post
+      operationId: createPost
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePostRequest"
+            examples:
+              published:
+                value:
+                  title: Random local post
+                  body: This is sample content sent through Kong from Postman.
+                  status: published
+              draft:
+                value:
+                  title: Draft from Postman
+                  body: Save this as a draft while testing request bodies.
+                  status: draft
+      responses:
+        "201":
+          description: Post created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+              examples:
+                default:
+                  value:
+                    id: post_2001
+                    title: Random local post
+                    body: This is sample content sent through Kong from Postman.
+                    status: published
+                    authorId: usr_1001
+                    createdAt: "2026-06-19T14:40:00Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /posts/{postId}:
+    parameters:
+      - name: postId
+        in: path
+        required: true
+        description: Post identifier.
+        schema:
+          type: string
+        example: post_1001
+    get:
+      tags:
+        - Posts
+      summary: Get one post
+      operationId: getPost
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Post detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+              examples:
+                default:
+                  value:
+                    id: post_1001
+                    title: Local Kong test
+                    body: This post was created for Postman and Kong route testing.
+                    status: published
+                    authorId: usr_1001
+                    createdAt: "2026-06-19T14:30:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags:
+        - Posts
+      summary: Replace one post
+      operationId: replacePost
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePostRequest"
+            examples:
+              default:
+                value:
+                  title: Updated local post
+                  body: Replaced body content from Postman.
+                  status: published
+      responses:
+        "200":
+          description: Post replaced.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags:
+        - Posts
+      summary: Delete one post
+      operationId: deletePost
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Post deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /random:
+    get:
+      tags:
+        - Posts
+      summary: Get random test data
+      operationId: getRandomData
+      parameters:
+        - name: seed
+          in: query
+          description: Optional seed value for repeatable test calls.
+          schema:
+            type: string
+          example: postman-demo
+      responses:
+        "200":
+          description: Random test payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RandomDataResponse"
+              examples:
+                default:
+                  value:
+                    requestId: req_local_1001
+                    number: 42
+                    enabled: true
+                    labels:
+                      - kong
+                      - postman
+                      - mtls
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Request validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            default:
+              value:
+                code: bad_request
+                message: Request body is invalid.
+    Unauthorized:
+      description: Missing or invalid access token.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            default:
+              value:
+                code: unauthorized
+                message: Login is required.
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            default:
+              value:
+                code: not_found
+                message: The requested resource was not found.
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: steve@example.test
+        password:
+          type: string
+          format: password
+          example: local-password-123
+    LoginResponse:
+      type: object
+      required:
+        - accessToken
+        - tokenType
+        - expiresIn
+        - user
+      properties:
+        accessToken:
+          type: string
+          example: local-test-token
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          example: 3600
+        user:
+          $ref: "#/components/schemas/User"
+    User:
+      type: object
+      required:
+        - id
+        - name
+        - email
+      properties:
+        id:
+          type: string
+          example: usr_1001
+        name:
+          type: string
+          example: Steve Wang
+        email:
+          type: string
+          format: email
+          example: steve@example.test
+    CreatePostRequest:
+      type: object
+      required:
+        - title
+        - body
+        - status
+      properties:
+        title:
+          type: string
+          minLength: 1
+          example: Random local post
+        body:
+          type: string
+          minLength: 1
+          example: This is sample content sent through Kong from Postman.
+        status:
+          type: string
+          enum:
+            - draft
+            - published
+          example: published
+    Post:
+      type: object
+      required:
+        - id
+        - title
+        - body
+        - status
+        - authorId
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: post_1001
+        title:
+          type: string
+          example: Local Kong test
+        body:
+          type: string
+          example: This post was created for Postman and Kong route testing.
+        status:
+          type: string
+          enum:
+            - draft
+            - published
+          example: published
+        authorId:
+          type: string
+          example: usr_1001
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-06-19T14:30:00Z"
+    PostListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        nextCursor:
+          type: string
+          nullable: true
+          example: post_1002
+    RandomDataResponse:
+      type: object
+      required:
+        - requestId
+        - number
+        - enabled
+        - labels
+      properties:
+        requestId:
+          type: string
+          example: req_local_1001
+        number:
+          type: integer
+          example: 42
+        enabled:
+          type: boolean
+          example: true
+        labels:
+          type: array
+          items:
+            type: string
+          example:
+            - kong
+            - postman
+            - mtls
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: bad_request
+        message:
+          type: string
+          example: Request body is invalid.

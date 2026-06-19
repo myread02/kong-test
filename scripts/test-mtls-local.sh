@@ -9,6 +9,13 @@ SERVER_CA="$CERT_DIR/localhost.crt"
 CLIENT_CERT="$CERT_DIR/client.crt"
 CLIENT_KEY="$CERT_DIR/client.key"
 
+if command -v mkcert >/dev/null 2>&1; then
+  MKCERT_CAROOT="$(mkcert -CAROOT 2>/dev/null || true)"
+  if [[ -n "$MKCERT_CAROOT" && -f "$MKCERT_CAROOT/rootCA.pem" ]]; then
+    SERVER_CA="$MKCERT_CAROOT/rootCA.pem"
+  fi
+fi
+
 for file in "$SERVER_CA" "$CLIENT_CERT" "$CLIENT_KEY"; do
   if [[ ! -f "$file" ]]; then
     echo "Missing required certificate file: $file" >&2

@@ -12,11 +12,19 @@ trap cleanup EXIT
 
 mkdir -p "$CERT_DIR"
 
-openssl req -x509 -newkey rsa:2048 -sha256 -days 365 -nodes \
-  -keyout "$CERT_DIR/localhost.key" \
-  -out "$CERT_DIR/localhost.crt" \
-  -subj /CN=localhost \
-  -addext subjectAltName=DNS:localhost,IP:127.0.0.1
+if ! command -v mkcert >/dev/null 2>&1; then
+  echo "mkcert is required for the local server certificate." >&2
+  echo "Install it with: brew install mkcert nss" >&2
+  exit 1
+fi
+
+if ! mkcert -install; then
+  echo "mkcert could not install its local CA from this shell." >&2
+  echo "Run ./scripts/generate-mtls-certs.sh in an interactive Terminal and approve the macOS password prompt." >&2
+  exit 1
+fi
+
+mkcert -cert-file "$CERT_DIR/localhost.crt" -key-file "$CERT_DIR/localhost.key" localhost 127.0.0.1 ::1
 
 openssl req -x509 -newkey rsa:2048 -sha256 -days 365 -nodes \
   -keyout "$CERT_DIR/client-ca.key" \
