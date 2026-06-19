@@ -79,93 +79,174 @@ Expected result: `200 OK` from httpbun through Kong gateway.
 
 ---
 
-## Mutual TLS (mTLS) Setting
+## Certificates and Mutual TLS (mTLS)
 
-By default, Kong is configured to verify client SSL certificates on the HTTPS proxy port `8443`. This is enabled in the `docker-compose.yml` file via:
-- `KONG_NGINX_PROXY_SSL_VERIFY_CLIENT: "on"`
-- `KONG_NGINX_PROXY_SSL_CLIENT_CERTIFICATE: "/etc/kong/certs/client-ca.crt"`
+A digital certificate is an X.509 document that binds an identity to a public key. TLS normally uses a server certificate so the client can authenticate the server and establish an encrypted connection. Mutual TLS adds client authentication: the server also requests a client certificate and verifies it against a trusted client certificate authority (CA).
 
-If you request `https://localhost:8443` without presenting a client certificate signed by that CA, Nginx will reject the connection with a `400 Bad Request` (`400 No required SSL certificate was sent`).
+This lab generates the following files:
 
-### 1. How to Generate and Mount Certificates (Container Activation)
+| File | Purpose | Secret? |
+| --- | --- | --- |
+| `localhost.crt` | Server certificate presented by Kong | No |
+| `localhost.key` | Private key for the Kong server certificate | **Yes** |
+| `client-ca.crt` | CA certificate Kong trusts when checking clients | No |
+| `client-ca.key` | CA private key used to issue client certificates | **Yes; most sensitive file** |
+| `client.crt` | Client identity presented to Kong | No |
+| `client.key` | Private key proving ownership of the client certificate | **Yes** |
 
-To activate mTLS and HTTPS, the certificate files must exist on the host before the Docker containers are started. If you start Docker first, Docker will automatically create an empty `certs/` directory on the host owned by `root`, which will block your certificate generation script and cause Kong gateway startup to fail.
+Never commit or send private keys through unencrypted channels. The entire `kong-local-lab/certs/` directory is ignored by Git because it contains local credentials.
 
-To activate correctly:
-1. **Clean up any bad setup (if you ran `docker compose up` first):**
-   ```bash
-   cd kong-local-lab
-   docker compose down -v
-   # Remove empty certs folder if created by root
-   sudo rm -rf certs
-   ```
-2. **Generate the certificates from the repository root:**
-   ```bash
-   ./scripts/generate-mtls-certs.sh
-   ```
-3. **Start the containers to mount the files and activate the gateway:**
-   ```bash
-   cd kong-local-lab
-   docker compose up -d
-   ```
+### How mTLS Is Enabled in This Kong OSS Lab
 
-### 2. Dynamic Certificate Activation via Kong Admin API
+The `kong:3.9.1` image is Kong Gateway OSS. The current `docker-compose.yml` uses Kong's Nginx configuration injection to enforce client-certificate verification:
 
-If you are using Kong's database-backed mode and want to dynamically register and manage certificates in the database rather than pinning them to container configuration files, use the Kong Admin API:
-
-#### A. Activate Server Certificates (for Custom SNIs)
-To dynamically upload and activate your server SSL certificate/key for SNIs like `localhost`:
-```bash
-curl -i -X POST http://localhost:8001/certificates \
-  -F "cert=@kong-local-lab/certs/localhost.crt" \
-  -F "key=@kong-local-lab/certs/localhost.key" \
-  -F "snis[]=localhost"
+```yaml
+KONG_SSL_CERT: /etc/kong/certs/localhost.crt
+KONG_SSL_CERT_KEY: /etc/kong/certs/localhost.key
+KONG_NGINX_PROXY_SSL_CLIENT_CERTIFICATE: /etc/kong/certs/client-ca.crt
+KONG_NGINX_PROXY_SSL_VERIFY_CLIENT: "on"
+KONG_NGINX_PROXY_SSL_VERIFY_DEPTH: "2"
 ```
 
-#### B. Activate CA Certificates (to Trust Client CAs)
-To dynamically register your client Certificate Authority (CA) in Kong's database:
+This applies mTLS to the **entire HTTPS proxy listener on port `8443`**, not to one Kong Service or Route. The HTTP proxy on port `8005` does not use TLS and therefore bypasses mTLS.
+
+The certificate files must exist before the Kong container starts so Docker can mount them read-only at `/etc/kong/certs`:
+
+```bash
+./scripts/generate-mtls-certs.sh
+docker compose -f kong-local-lab/docker-compose.yml up -d
+```
+
+If Docker created an empty, root-owned `kong-local-lab/certs/` directory before certificate generation, stop the lab, remove only that empty directory, generate the certificates, and start again. Do not use `docker compose down -v` for this correction unless you intentionally want to delete the PostgreSQL data volume.
+
+### Route- or Service-Specific mTLS
+
+Kong's [Mutual TLS Authentication](https://developer.konghq.com/plugins/mtls-auth/) and [TLS Handshake Modifier](https://developer.konghq.com/plugins/tls-handshake-modifier/) plugins are Enterprise-tier and are not included in `kong:3.9.1` OSS. TLS Handshake Modifier only requests a client certificate; it does not validate the certificate by itself.
+
+Check plugin availability before trying to configure it:
+
+```bash
+curl -s http://localhost:8001/plugins/enabled
+curl -i http://localhost:8001/schemas/plugins/mtls-auth
+```
+
+For this OSS image, `mtls-auth` will not appear in the enabled plugin list and its schema request will return `404`. If route- or Service-specific mTLS is required with an OSS stack, use a dedicated Kong listener/instance for the protected APIs or terminate and validate mTLS in an external Nginx, HAProxy, or Envoy proxy.
+
+#### Enterprise-only Admin API example
+
+On a licensed Kong Gateway edition that includes `mtls-auth`, first upload the trusted client CA and note its returned `id`:
+
 ```bash
 curl -i -X POST http://localhost:8001/ca_certificates \
   -F "cert=@kong-local-lab/certs/client-ca.crt"
 ```
-*Note the returned JSON `id` of the CA certificate. You will need it to configure routes or plugins.*
 
-#### C. Activate the mTLS Authentication (`mtls-auth`) Plugin on a Route
-To enforce client-certificate-based authentication dynamically on a specific route (e.g., `test-route`) using the registered CA certificate:
+Then apply the plugin to the Service using the documented `config.ca_certificates` field:
+
 ```bash
-curl -i -X POST http://localhost:8001/routes/test-route/plugins \
-  --data "name=mtls-auth" \
-  --data "config.ca_certificates[]=<ca-certificate-uuid>"
+curl -i -X POST http://localhost:8001/services/mock-backend/plugins \
+  --data 'name=mtls-auth' \
+  --data 'config.ca_certificates[]=<ca-certificate-id>'
 ```
 
-### 3. Verify mTLS with Curl
-To verify that mTLS works locally, run:
+Do not configure `config.anonymous` when strict client-certificate enforcement is required; that option allows authentication failures to fall back to an anonymous Consumer. Uploading a server certificate to `/certificates` only configures TLS certificates and SNIs. It does not enable client-certificate validation.
+
+### Verify mTLS
+
+Run the automated check from the repository root:
 
 ```bash
 ./scripts/test-mtls-local.sh
 ```
 
-Or run the manual curl command:
+For a manual request, trust the local `mkcert` root CA and present the generated client identity:
 
 ```bash
-curl --cacert kong-local-lab/certs/localhost.crt \
+SERVER_CA="$(mkcert -CAROOT)/rootCA.pem"
+
+curl --cacert "$SERVER_CA" \
   --cert kong-local-lab/certs/client.crt \
   --key kong-local-lab/certs/client.key \
   -i https://localhost:8443/api/v1/anything
 ```
 
-### Import Certificate into macOS Keychain
-To make macOS and browsers trust the client certificate:
-1. Export the client certificate as a `.p12` file:
-   ```bash
-   openssl pkcs12 -export \
-     -out kong-local-lab/certs/client.p12 \
-     -inkey kong-local-lab/certs/client.key \
-     -in kong-local-lab/certs/client.crt \
-     -certfile kong-local-lab/certs/client-ca.crt \
-     -name "Kong Local Client"
-   ```
-2. Double-click the generated `kong-local-lab/certs/client.p12` file (or run `open kong-local-lab/certs/client.p12`) to import it into your Keychain Access.
+If `test-route` exists, the expected result is `200 OK`. Without a matching Route, any nonzero HTTP response still proves that the TLS handshake reached Kong; use the response status and Kong logs to diagnose routing separately.
+
+### Import the Client Certificate into macOS Keychain
+
+Export the client identity as PKCS#12 and import it into Keychain Access when a browser or GUI client needs to present it:
+
+```bash
+openssl pkcs12 -export \
+  -out kong-local-lab/certs/client.p12 \
+  -inkey kong-local-lab/certs/client.key \
+  -in kong-local-lab/certs/client.crt \
+  -certfile kong-local-lab/certs/client-ca.crt \
+  -name "Kong Local Client"
+
+open kong-local-lab/certs/client.p12
+```
+
+The `.p12` file contains the client private key. Protect it like the original `client.key` and remove it when it is no longer needed.
+
+### Troubleshoot mTLS
+
+Inspect certificate identity, validity, server hostname SANs, and client extended key usage:
+
+```bash
+openssl x509 -in kong-local-lab/certs/localhost.crt \
+  -noout -subject -issuer -dates
+
+openssl x509 -in kong-local-lab/certs/localhost.crt -noout -text \
+  | sed -n '/Subject Alternative Name/{n;p;}'
+
+openssl x509 -in kong-local-lab/certs/client.crt \
+  -noout -subject -issuer -dates
+
+openssl x509 -in kong-local-lab/certs/client.crt -noout -text \
+  | sed -n '/Extended Key Usage/{n;p;}'
+
+openssl verify \
+  -CAfile kong-local-lab/certs/client-ca.crt \
+  kong-local-lab/certs/client.crt
+```
+
+The server certificate must contain `localhost` in its SANs. The client certificate must be unexpired and contain the `TLS Web Client Authentication`/`clientAuth` usage. This lab's client certificate does not require a SAN because Nginx validates its issuing CA rather than mapping a SAN to a Kong Consumer.
+
+Check the rendered Compose configuration, container status, certificate mount, and startup logs:
+
+```bash
+docker compose -f kong-local-lab/docker-compose.yml config
+docker compose -f kong-local-lab/docker-compose.yml ps
+docker compose -f kong-local-lab/docker-compose.yml exec kong ls -l /etc/kong/certs
+docker compose -f kong-local-lab/docker-compose.yml logs --tail=200 kong
+```
+
+Inspect the TLS handshake directly:
+
+```bash
+SERVER_CA="$(mkcert -CAROOT)/rootCA.pem"
+
+curl -v --cacert "$SERVER_CA" https://localhost:8443/
+
+openssl s_client \
+  -connect localhost:8443 \
+  -servername localhost \
+  -CAfile "$SERVER_CA" \
+  -cert kong-local-lab/certs/client.crt \
+  -key kong-local-lab/certs/client.key \
+  -verify_return_error -state
+```
+
+Expected results:
+
+| Test | Expected result |
+| --- | --- |
+| No client certificate | Kong's Nginx layer rejects the request, normally with HTTP `400` |
+| Trusted client certificate | TLS succeeds and Kong handles the HTTP request |
+| Certificate signed by another CA | TLS/client verification fails |
+| Expired client or server certificate | Certificate verification fails |
+| Valid TLS but `404` response | mTLS worked; configure or correct the Kong Route |
 
 ---
 
@@ -235,6 +316,199 @@ To disable or remove the rate limit, use the plugin's UUID (`<plugin-id>`) retri
 ```bash
 curl -i -X DELETE http://localhost:8001/plugins/<plugin-id>
 ```
+
+## Logs, Traces, and Metrics
+
+Logs, distributed traces, and metrics answer different questions. Logs record events and request details, traces follow one request across components, and metrics provide numeric time-series data such as request rates and latency.
+
+### Follow Kong Logs Locally
+
+Kong container logs are available through Docker Compose:
+
+```bash
+docker compose -f kong-local-lab/docker-compose.yml logs \
+  -f --tail=200 --timestamps kong
+```
+
+Limit the output to a recent time window when investigating a failure:
+
+```bash
+docker compose -f kong-local-lab/docker-compose.yml logs \
+  --since=10m --timestamps kong
+```
+
+Kong includes an `X-Kong-Request-Id` response header. Copy that value from `curl -i` output and find the corresponding request or error:
+
+```bash
+docker compose -f kong-local-lab/docker-compose.yml logs kong \
+  | grep '<request-id>'
+```
+
+A TLS handshake can fail before Kong creates an HTTP request ID. For those failures, reproduce the request while following the logs and search for certificate or SSL errors instead.
+
+For temporary deep diagnostics, add `KONG_LOG_LEVEL: debug` to the `kong` service environment and recreate that container:
+
+```bash
+docker compose -f kong-local-lab/docker-compose.yml up -d \
+  --force-recreate kong
+```
+
+Debug logging is verbose and can expose additional request context. Remove the setting and recreate the container after diagnosis.
+
+### Structured Request Logs with File Log
+
+The free File Log plugin writes one JSON object per request. In a container, write to `/dev/stdout` so Docker captures the output:
+
+```bash
+curl -i -X POST http://localhost:8001/plugins \
+  --data 'name=file-log' \
+  --data 'config.path=/dev/stdout'
+```
+
+The correct field is `config.path`, not `config.config.path`. Writing to a physical path such as `/var/log/kong/custom_access.log` requires a writable persistent volume; otherwise the file is lost when the container is replaced. The File Log plugin uses blocking file I/O and produces logs only—it does not generate Jaeger, Zipkin, or OpenTelemetry traces.
+
+### Free Open-Source Observability Options
+
+| Signal | Collector / shipper | Storage and UI | Kong integration |
+| --- | --- | --- | --- |
+| Logs | Vector, Fluent Bit, or Grafana Alloy | Grafana Loki + Grafana, or OpenSearch + OpenSearch Dashboards | Docker stdout/stderr or a Kong logging plugin |
+| Traces | OpenTelemetry Collector | Jaeger or Grafana Tempo | Kong OpenTelemetry plugin; alternatively use Kong Zipkin with Zipkin |
+| Metrics | Prometheus | Prometheus + Grafana | Kong Prometheus plugin |
+
+For distributed tracing on Kong 3.9.1, enable the free OpenTelemetry plugin and send OTLP data to an OpenTelemetry Collector or compatible backend. A collector is preferable when data needs batching, filtering, enrichment, or routing to more than one backend. See the [Kong OpenTelemetry plugin documentation](https://developer.konghq.com/plugins/opentelemetry/) and [Kong logging reference](https://developer.konghq.com/gateway/logs/).
+
+## Move, Copy, Backup, and Restore
+
+A complete, recoverable backup has three independent layers:
+
+1. **Repository files:** `docker-compose.yml`, scripts, OpenAPI files, and this README.
+2. **Certificate material:** generated files in `kong-local-lab/certs/`, which Git intentionally ignores.
+3. **Kong state:** Services, Routes, plugins, certificates, and other entities stored in PostgreSQL in the `pgdata` Docker volume.
+
+Backing up only the Git repository does not preserve certificates or Kong's database state.
+
+### Copy the Repository
+
+Prefer cloning from the Git remote on the destination machine:
+
+```bash
+git clone <repository-url> kong-test
+cd kong-test
+```
+
+If no remote is available, copy the source tree with `rsync`. Transfer certificates and the database dump separately:
+
+```bash
+rsync -a \
+  --exclude='.git' \
+  --exclude='.DS_Store' \
+  --exclude='kong-local-lab/.docker-nocreds' \
+  --exclude='kong-local-lab/certs' \
+  /path/to/kong-test/ user@destination:/path/to/kong-test/
+```
+
+Docker's named `pgdata` volume is not stored inside this source tree.
+
+### Back Up PostgreSQL
+
+Run a logical backup while the current database container is healthy. Store the dump outside the Git repository:
+
+```bash
+mkdir -p ../kong-test-backup
+
+docker compose -f kong-local-lab/docker-compose.yml exec -T kong-database \
+  pg_dump -U kong -d kong -Fc --no-owner --no-acl \
+  > ../kong-test-backup/kong.dump
+```
+
+Verify that PostgreSQL can read the custom-format archive:
+
+```bash
+docker compose -f kong-local-lab/docker-compose.yml exec -T kong-database \
+  pg_restore -l < ../kong-test-backup/kong.dump
+```
+
+Do not copy the raw files of a running PostgreSQL Docker volume. A logical `pg_dump` is portable and consistent. `docker compose down -v` permanently deletes the `pgdata` volume and must not be used until the backup has been verified.
+
+### Back Up Certificates Securely
+
+For ordinary local development, the preferred destination setup is to generate fresh certificates with `./scripts/generate-mtls-certs.sh`. This creates a server certificate trusted by the destination machine's `mkcert` CA.
+
+If existing client identities must be preserved, back up the certificate directory with encryption. The following example uses the open-source `age` tool and prompts for a passphrase:
+
+```bash
+brew install age
+
+tar -C kong-local-lab -czf - certs \
+  | age -p -o ../kong-test-backup/kong-certs.tar.gz.age
+
+chmod 600 ../kong-test-backup/kong-certs.tar.gz.age
+```
+
+The encrypted archive includes server and client private keys plus the client CA private key. Store its passphrase separately. Copying only `localhost.crt` does not make another machine trust the source machine's `mkcert` CA.
+
+### Restore on Another Machine
+
+Restore into the same Kong (`3.9.1`) and PostgreSQL (`15`) versions first. Upgrade only after the restored lab works.
+
+1. Clone or copy the repository.
+2. Choose one certificate strategy:
+   - For new local identities, run `./scripts/generate-mtls-certs.sh` and do not restore the certificate archive.
+   - To preserve client identities, install the destination `mkcert` CA, restore the encrypted archive, and regenerate only the server certificate for the destination machine:
+
+   ```bash
+   brew install mkcert nss age
+   mkcert -install
+
+   age -d /path/to/kong-certs.tar.gz.age \
+     | tar -xzf - -C kong-local-lab
+
+   mkcert \
+     -cert-file kong-local-lab/certs/localhost.crt \
+     -key-file kong-local-lab/certs/localhost.key \
+     localhost 127.0.0.1 ::1
+
+   chmod 600 kong-local-lab/certs/*.key
+   ```
+
+   This keeps `client-ca.crt`, `client-ca.key`, `client.crt`, and `client.key`, while replacing the server identity with one trusted on the destination.
+
+3. Start the empty lab once so PostgreSQL and Kong initialize normally:
+
+   ```bash
+   docker compose -f kong-local-lab/docker-compose.yml up -d
+   curl -i http://localhost:8001/status
+   ```
+
+4. Stop Kong to close its database connections while leaving PostgreSQL running:
+
+   ```bash
+   docker compose -f kong-local-lab/docker-compose.yml stop kong
+   ```
+
+5. Restore the logical dump:
+
+   ```bash
+   docker compose -f kong-local-lab/docker-compose.yml exec -T kong-database \
+     pg_restore -U kong -d kong --clean --if-exists \
+     --no-owner --no-acl --exit-on-error \
+     < /path/to/kong.dump
+   ```
+
+6. Restart Kong and verify the restored state:
+
+   ```bash
+   docker compose -f kong-local-lab/docker-compose.yml start kong
+
+   curl -i http://localhost:8001/status
+   curl -s http://localhost:8001/services
+   curl -s http://localhost:8001/routes
+   curl -s http://localhost:8001/plugins
+   docker compose -f kong-local-lab/docker-compose.yml logs --tail=100 kong
+   ./scripts/test-mtls-local.sh
+   ```
+
+Keep the database dump and certificate archive until all health, configuration, routing, logging, and mTLS checks pass on the destination.
 
 ## Stop And Reset
 
