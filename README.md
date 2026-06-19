@@ -16,6 +16,14 @@ The proxy is exposed on host port `8005` because port `8000` was already used by
 
 ## Start
 
+Generate local TLS and mTLS certificates from the repository root:
+
+```bash
+./scripts/generate-mtls-certs.sh
+```
+
+The generated files are written to `kong-local-lab/certs/` and are ignored by Git.
+
 ```bash
 cd kong-local-lab
 docker compose up -d
@@ -52,13 +60,28 @@ curl -i -X PUT http://localhost:8001/services/mock-backend/routes/test-route \
   --data 'protocols[]=https'
 ```
 
-Verify the proxy:
+Verify the HTTP proxy:
 
 ```bash
 curl -i http://localhost:8005/api/v1/anything
 ```
 
 Expected result: `200 OK` from httpbin through Kong. If httpbin is temporarily unavailable, the response may be an upstream `503`, but Kong should still include `Via: 1.1 kong/3.9.1`.
+
+Verify the HTTPS proxy with mTLS from the repository root:
+
+```bash
+./scripts/test-mtls-local.sh
+```
+
+The HTTPS proxy on `https://localhost:8443` requires a client certificate signed by `kong-local-lab/certs/client-ca.crt`. A request without a client certificate should fail during TLS negotiation. A request with the generated client certificate should reach Kong:
+
+```bash
+curl --cacert kong-local-lab/certs/localhost.crt \
+  --cert kong-local-lab/certs/client.crt \
+  --key kong-local-lab/certs/client.key \
+  -i https://localhost:8443/api/v1/anything
+```
 
 ## Rate Limit Plugin
 
