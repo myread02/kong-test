@@ -55,5 +55,14 @@ services:
       kong-migrations:
         condition: service_completed_successfully
 
+  mock-server:
+    image: stoplight/prism:5
+    container_name: kong-mock-server
+    command: mock -h 0.0.0.0 -m false /openapi/kong-local-test-api.yaml
+    volumes:
+      - ../openapi:/openapi:ro
+    ports:
+      - "4010:4010"
+
 volumes:
   pgdata:
