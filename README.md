@@ -173,7 +173,7 @@ To make macOS and browsers trust the client certificate:
 
 ### 1. Import OpenAPI Specification
 Import the specification file into Postman:
-- File path: `openapi/kong-local-test-api.yaml` (or `openapi/kong-local-test-api.json`)
+- File path: `openapi/kong-local-test-api.json`
 
 Postman will generate a Collection with requests matching all routes.
 

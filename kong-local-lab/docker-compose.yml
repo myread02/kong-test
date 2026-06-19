@@ -58,7 +58,7 @@ services:
   mock-server:
     image: stoplight/prism:5
     container_name: kong-mock-server
-    command: mock -h 0.0.0.0 -m false /openapi/kong-local-test-api.yaml
+    command: mock -h 0.0.0.0 -m false /openapi/kong-local-test-api.json
     volumes:
       - ../openapi:/openapi:ro
     ports:
