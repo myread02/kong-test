@@ -32,6 +32,7 @@
   "paths": {
     "/auth/login": {
       "post": {
+        "x-postman-test-script": "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\nvar jsonData = pm.response.json();\nif (jsonData.accessToken) {\n    pm.environment.set(\"accessToken\", jsonData.accessToken);\n}",
         "tags": [
           "Auth"
         ],
@@ -88,6 +89,7 @@
     },
     "/auth/logout": {
       "post": {
+        "x-postman-test-script": "pm.test(\"Status code is 204\", function () {\n    pm.response.to.have.status(204);\n});\npm.environment.unset(\"accessToken\");",
         "tags": [
           "Auth"
         ],
@@ -110,6 +112,7 @@
     },
     "/profile": {
       "get": {
+        "x-postman-test-script": "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\nvar jsonData = pm.response.json();\npm.test(\"User details match\", function () {\n    pm.expect(jsonData.id).to.eql(\"usr_1001\");\n    pm.expect(jsonData.email).to.eql(\"steve@example.test\");\n});",
         "tags": [
           "Profile"
         ],
@@ -148,6 +151,7 @@
     },
     "/posts": {
       "get": {
+        "x-postman-test-script": "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\nvar jsonData = pm.response.json();\npm.test(\"Posts list contains data\", function () {\n    pm.expect(jsonData.data).to.be.an('array');\n    pm.expect(jsonData.data.length).to.be.above(0);\n});",
         "tags": [
           "Posts"
         ],
@@ -221,6 +225,7 @@
         }
       },
       "post": {
+        "x-postman-test-script": "pm.test(\"Status code is 201\", function () {\n    pm.response.to.have.status(201);\n});\nvar jsonData = pm.response.json();\npm.test(\"Post created successfully\", function () {\n    pm.expect(jsonData.id).to.exist;\n    pm.expect(jsonData.title).to.exist;\n});",
         "tags": [
           "Posts"
         ],
@@ -303,6 +308,7 @@
         }
       ],
       "get": {
+        "x-postman-test-script": "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});\nvar jsonData = pm.response.json();\npm.test(\"Correct post returned\", function () {\n    pm.expect(jsonData.id).to.eql(\"post_1001\");\n});",
         "tags": [
           "Posts"
         ],
@@ -345,6 +351,7 @@
         }
       },
       "put": {
+        "x-postman-test-script": "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});",
         "tags": [
           "Posts"
         ],
@@ -397,6 +404,7 @@
         }
       },
       "delete": {
+        "x-postman-test-script": "pm.test(\"Status code is 204\", function () {\n    pm.response.to.have.status(204);\n});",
         "tags": [
           "Posts"
         ],
@@ -422,6 +430,7 @@
     },
     "/random": {
       "get": {
+        "x-postman-test-script": "pm.test(\"Status code is 200\", function () {\n    pm.response.to.have.status(200);\n});",
         "tags": [
           "Posts"
         ],

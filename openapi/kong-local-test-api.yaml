@@ -18,6 +18,14 @@ tags:
 paths:
   /auth/login:
     post:
+      x-postman-test-script: |
+        pm.test("Status code is 200", function () {
+            pm.response.to.have.status(200);
+        });
+        var jsonData = pm.response.json();
+        if (jsonData.accessToken) {
+            pm.environment.set("accessToken", jsonData.accessToken);
+        }
       tags:
         - Auth
       summary: Login with email and password
@@ -54,6 +62,11 @@ paths:
           $ref: "#/components/responses/Unauthorized"
   /auth/logout:
     post:
+      x-postman-test-script: |
+        pm.test("Status code is 204", function () {
+            pm.response.to.have.status(204);
+        });
+        pm.environment.unset("accessToken");
       tags:
         - Auth
       summary: Logout the current user
@@ -67,6 +80,15 @@ paths:
           $ref: "#/components/responses/Unauthorized"
   /profile:
     get:
+      x-postman-test-script: |
+        pm.test("Status code is 200", function () {
+            pm.response.to.have.status(200);
+        });
+        var jsonData = pm.response.json();
+        pm.test("User details match", function () {
+            pm.expect(jsonData.id).to.eql("usr_1001");
+            pm.expect(jsonData.email).to.eql("steve@example.test");
+        });
       tags:
         - Profile
       summary: Get current user profile
@@ -90,6 +112,15 @@ paths:
           $ref: "#/components/responses/Unauthorized"
   /posts:
     get:
+      x-postman-test-script: |
+        pm.test("Status code is 200", function () {
+            pm.response.to.have.status(200);
+        });
+        var jsonData = pm.response.json();
+        pm.test("Posts list contains data", function () {
+            pm.expect(jsonData.data).to.be.an('array');
+            pm.expect(jsonData.data.length).to.be.above(0);
+        });
       tags:
         - Posts
       summary: List posts
@@ -137,6 +168,15 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
     post:
+      x-postman-test-script: |
+        pm.test("Status code is 201", function () {
+            pm.response.to.have.status(201);
+        });
+        var jsonData = pm.response.json();
+        pm.test("Post created successfully", function () {
+            pm.expect(jsonData.id).to.exist;
+            pm.expect(jsonData.title).to.exist;
+        });
       tags:
         - Posts
       summary: Create a post
@@ -190,6 +230,14 @@ paths:
           type: string
         example: post_1001
     get:
+      x-postman-test-script: |
+        pm.test("Status code is 200", function () {
+            pm.response.to.have.status(200);
+        });
+        var jsonData = pm.response.json();
+        pm.test("Correct post returned", function () {
+            pm.expect(jsonData.id).to.eql("post_1001");
+        });
       tags:
         - Posts
       summary: Get one post
@@ -217,6 +265,10 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
     put:
+      x-postman-test-script: |
+        pm.test("Status code is 200", function () {
+            pm.response.to.have.status(200);
+        });
       tags:
         - Posts
       summary: Replace one post
@@ -249,6 +301,10 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
     delete:
+      x-postman-test-script: |
+        pm.test("Status code is 204", function () {
+            pm.response.to.have.status(204);
+        });
       tags:
         - Posts
       summary: Delete one post
@@ -264,6 +320,10 @@ paths:
           $ref: "#/components/responses/NotFound"
   /random:
     get:
+      x-postman-test-script: |
+        pm.test("Status code is 200", function () {
+            pm.response.to.have.status(200);
+        });
       tags:
         - Posts
       summary: Get random test data
