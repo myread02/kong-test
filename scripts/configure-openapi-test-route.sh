@@ -6,7 +6,7 @@ ADMIN_API="${ADMIN_API:-http://localhost:8001}"
 echo "Configuring Kong service mock-backend..."
 curl -sS -o /dev/null -w "service http_code=%{http_code}\n" \
   -X PUT "$ADMIN_API/services/mock-backend" \
-  --data 'url=https://httpbin.org/anything'
+  --data 'url=https://httpbun.com/anything'
 
 echo "Configuring Kong route test-route for /api/v1..."
 curl -sS -o /dev/null -w "route http_code=%{http_code}\n" \
