@@ -171,11 +171,17 @@ To make macOS and browsers trust the client certificate:
 
 ## Postman & Newman Settings
 
-### 1. Import OpenAPI Specification
-Import the specification file into Postman:
-- File path: `openapi/kong-local-test-api.json`
+### 1. Import Postman Collection
+Import the pre-generated Postman Collection file directly into Postman:
+- File path: `openapi/kong-local-test-collection.json`
 
-Postman will generate a Collection with requests matching all routes.
+This collection is pre-populated with all the requests and their robust test scripts.
+
+*(Optional) If you modify `openapi/kong-local-test-api.json` and want to regenerate the collection, run:*
+```bash
+npx openapi-to-postmanv2 -s openapi/kong-local-test-api.json -o openapi/kong-local-test-collection.json
+node scripts/inject-postman-tests.js
+```
 
 ### 2. Configure Client Certificates in Postman
 Because HTTPS port `8443` requires mTLS, you must add the client certificate in Postman:
