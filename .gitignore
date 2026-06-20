@@ -1,4 +1,5 @@
 .DS_Store
+.worktrees/
 
 # Local Docker client config used to bypass host credential helper issues.
 kong-local-lab/.docker-nocreds/
