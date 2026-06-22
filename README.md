@@ -236,6 +236,44 @@ docker compose -f kong-local-lab/docker-compose.yml exec kong ls -l /etc/kong/ce
 docker compose -f kong-local-lab/docker-compose.yml logs --tail=200 kong
 ```
 
+Check that Kong received the mTLS-related settings and rendered them into its Nginx configuration:
+
+```bash
+docker compose -f kong-local-lab/docker-compose.yml exec kong sh -lc \
+  'env | sort | grep -E "^(KONG_PROXY_LISTEN|KONG_.*SSL)"'
+
+docker compose -f kong-local-lab/docker-compose.yml exec kong sh -lc \
+  'grep -n "ssl_certificate\|ssl_client_certificate\|ssl_verify_client\|ssl_verify_depth" /usr/local/kong/nginx-kong.conf'
+```
+
+The running container should show these effective settings:
+
+| Setting | Expected value | Failure mode |
+| --- | --- | --- |
+| `KONG_PROXY_LISTEN` | Includes `0.0.0.0:8443 ssl` | Port `8443` does not accept TLS |
+| `KONG_SSL_CERT` | `/etc/kong/certs/localhost.crt` | Kong cannot load the server certificate |
+| `KONG_SSL_CERT_KEY` | `/etc/kong/certs/localhost.key` | Kong cannot load the server private key |
+| `KONG_NGINX_PROXY_SSL_CLIENT_CERTIFICATE` | `/etc/kong/certs/client-ca.crt` | Client certificates are rejected or not checked against the intended CA |
+| `KONG_NGINX_PROXY_SSL_VERIFY_CLIENT` | `on` | Missing or `off` means mTLS is not enforced |
+| `KONG_NGINX_PROXY_SSL_VERIFY_DEPTH` | `2` | Certificate chains may fail when the depth is too low |
+
+After changing any `KONG_*` environment value or replacing certificate files, recreate the Kong container so Nginx is regenerated:
+
+```bash
+docker compose -f kong-local-lab/docker-compose.yml up -d \
+  --force-recreate kong
+```
+
+When Kong is misconfigured, the startup and request logs usually identify the layer that failed:
+
+| Log symptom | Likely cause |
+| --- | --- |
+| `no such file` for `/etc/kong/certs/...` | Certificate path in `docker-compose.yml` does not match the mounted files |
+| `Permission denied` while reading a key or certificate | File permissions or ownership prevent the container from reading the mounted file |
+| `PEM_read_bio` or `bad end line` | A certificate or key file is malformed or truncated |
+| `key values mismatch` | `localhost.crt` and `localhost.key` are not a matching pair |
+| `client SSL certificate verify error` | The client cert is expired, signed by another CA, or the wrong `client-ca.crt` is configured |
+
 Inspect the TLS handshake directly:
 
 ```bash
